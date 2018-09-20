@@ -156,21 +156,26 @@ func (s *SqlSupplier) GroupGetAllPage(ctx context.Context, offset int, limit int
 	return result
 }
 
-func (s *SqlSupplier) GroupDelete(ctx context.Context, groupId string, hints ...store.LayeredStoreHint) *store.LayeredStoreSupplierResult {
+func (s *SqlSupplier) GroupDelete(ctx context.Context, groupID string, hints ...store.LayeredStoreHint) *store.LayeredStoreSupplierResult {
 	result := store.NewSupplierResult()
 
-	if !model.IsValidId(groupId) {
-		result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.delete.group_id.invalid", nil, "Id="+groupId, http.StatusBadRequest)
+	if !model.IsValidId(groupID) {
+		result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.delete.group_id.invalid", nil, "Id="+groupID, http.StatusBadRequest)
 	}
 
 	var group *model.Group
-	if err := s.GetReplica().SelectOne(&group, "SELECT * from Groups WHERE Id = :Id", map[string]interface{}{"Id": groupId}); err != nil {
+	if err := s.GetReplica().SelectOne(&group, "SELECT * from Groups WHERE Id = :Id", map[string]interface{}{"Id": groupID}); err != nil {
 		if err == sql.ErrNoRows {
-			result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.get.app_error", nil, "Id="+groupId+", "+err.Error(), http.StatusNotFound)
+			result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.get.app_error", nil, "Id="+groupID+", "+err.Error(), http.StatusNotFound)
 		} else {
 			result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.get.app_error", nil, err.Error(), http.StatusInternalServerError)
 		}
 
+		return result
+	}
+
+	if group.DeleteAt != 0 {
+		result.Err = model.NewAppError("SqlGroupStore.Delete", "store.sql_group.delete.already_deleted", nil, "group_id="+groupID, http.StatusInternalServerError)
 		return result
 	}
 

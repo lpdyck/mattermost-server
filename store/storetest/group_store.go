@@ -283,6 +283,10 @@ func testGroupStoreDelete(t *testing.T, ss store.Store) {
 	res6 := <-ss.Group().Delete(model.NewId())
 	assert.NotNil(t, res6.Err)
 	assert.Equal(t, res6.Err.Id, "store.sql_group.get.app_error")
+
+	// Cannot delete again
+	res8 := <-ss.Group().Delete(d1.Id)
+	assert.Equal(t, res8.Err.Id, "store.sql_group.delete.already_deleted")
 }
 
 func testGroupCreateMember(t *testing.T, ss store.Store) {
